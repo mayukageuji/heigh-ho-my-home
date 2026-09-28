@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>archive / (最)(近)</title>
+
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<style>
+
+html,
+body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+body{
+  background:#cad4a7;
+}
+
+.archive-page{
+  width:100vw;
+  height:100vh;
+  background:#cad4a7;
+  position:relative;
+  overflow:hidden;
+}
+
+/* -------------------------
+   header
+------------------------- */
+
+.archive-head{
+  position:fixed;
+  top:18px;
+  left:18px;
+  z-index:9999;
+  font-size:12px;
+}
+
+.archive-head a{
+  color:#000;
+}
+
+.archive-title{
+  position:fixed;
+  top:18px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+
+  font-size:clamp(34px,6vw,80px);
+  font-family:"Yu Gothic","YuGothic",sans-serif;
+
+  pointer-events:none;
+}
+
+/* -------------------------
+   stage
+------------------------- */
+
+.archive-stage{
+  position:absolute;
+  inset:0;
+}
+
+/* -------------------------
+   投稿
+------------------------- */
+
+.scrap{
+  position:absolute;
+  left:0;
+  top:0;
+
+  transform-origin:center center;
+
+  cursor:pointer;
+
+  transition:
+    transform 1.2s cubic-bezier(.2,.8,.2,1);
+
+  user-select:none;
+}
+
+/* 写真そのもの */
+
+.scrap img{
+  display:block;
+
+  width:100%;
+  height:100%;
+
+  object-fit:contain;
+
+  background:none;
+  box-shadow:none;
+
+  pointer-events:none;
+}
+
+/* 文字そのもの */
+
+.scrap-text{
+  width:100%;
+  height:100%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:transparent;
+
+  padding:0;
+  box-sizing:border-box;
+
+  font:
+    normal clamp(24px,4vw,70px)/1.05
+    "Gill Sans",
+    "Gill Sans MT",
+    sans-serif;
+
+  text-align:center;
+
+  pointer-events:none;
+}
+
+/* -------------------------
+   nav
+------------------------- */
+
+.archive-nav{
+  position:fixed;
+
+  left:18px;
+  bottom:18px;
+
+  z-index:9999;
+
+  display:flex;
+  gap:12px;
+
+  font-size:11px;
+}
+
+.archive-nav a{
+  color:#000;
+}
+
+/* -------------------------
+   nothing
+------------------------- */
+
+.nothing{
+  position:fixed;
+  inset:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font:
+    normal clamp(34px,7vw,100px)/1.08
+    "Gill Sans",
+    "Gill Sans MT",
+    sans-serif;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<main class="archive-page">
+
+  <div class="archive-head">
+    <a href="index.html">← (最)(近)</a>
+  </div>
+
+  <div class="archive-title">
+    archive
+  </div>
+
+  <div
+    class="archive-stage"
+    id="stage">
+  </div>
+
+  <nav class="archive-nav">
+    <a href="upload.html">upload</a>
+    <a href="index.html">home</a>
+    <a href="about.html">about</a>
+  </nav>
+
+</main>
+
+
+<script>
+
+/* -------------------------
+   Supabase
+------------------------- */
+
+const supabaseReady =
+  window.SUPABASE_URL &&
+  window.SUPABASE_ANON_KEY;
+
+const sb =
+  supabaseReady
+    ? supabase.createClient(
+        window.SUPABASE_URL,
+        window.SUPABASE_ANON_KEY
+      )
+    : null;
+
+
+/* -------------------------
+   デモ投稿
+------------------------- */
+
+const DEMO_POSTS = [
+  {
+    id:"demo1",
+    type:"image",
+    image_url:"../blog/images/0715-01.jpg",
+    content:""
+  },
+  {
+    id:"demo2",
+    type:"text",
+    image_url:"",
+    content:"今日は知らない道を歩いた。"
+  },
+  {
+    id:"demo3",
+    type:"image",
+    image_url:"../blog/images/0731-01.jpg",
+    content:""
+  },
+  {
+    id:"demo4",
+    type:"text",
+    image_url:"",
+    content:"久しぶりに料理をした。"
+  }
+];
+
+
+/* -------------------------
+   投稿取得
+------------------------- */
+
+async function getPosts(){
+
+  if(!sb){
+    return DEMO_POSTS;
+  }
+
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from("recent_posts")
+      .select("*")
+      .eq("published",true)
+      .order("created_at",{ascending:false});
+
+  if(error){
+
+    console.error(error);
+
+    return DEMO_POSTS;
+  }
+
+  return data || [];
+}
+
+
+/* -------------------------
+   ランダム
+------------------------- */
+
+function random(min,max){
+
+  return Math.random() * (max-min) + min;
+
+}
+
+
+/* -------------------------
+   投稿を作る
+------------------------- */
+
+function createPost(item){
+
+  const scrap =
+    document.createElement("div");
+
+  scrap.className = "scrap";
+
+
+  /* -------------------------
+     サイズ
+  ------------------------- */
+
+  let width;
+
+  const size =
+    Math.random();
+
+  if(size < .3){
+
+    width = random(100,190);
+
+  }else if(size < .8){
+
+    width = random(180,330);
+
+  }else{
+
+    width = random(300,520);
+
+  }
+
+
+  let height;
+
+
+  /* -------------------------
+     写真
+  ------------------------- */
+
+  if(
+    item.type === "image" &&
+    item.image_url
+  ){
+
+    const ratio =
+      random(.65,1.35);
+
+    height =
+      width * ratio;
+
+
+    const img =
+      document.createElement("img");
+
+    img.src =
+      item.image_url;
+
+    img.alt = "";
+
+    /*
+      画像が消されていて
+      URLが存在しない場合は
+      投稿そのものを消す
+    */
+
+    img.onerror = () => {
+
+      scrap.remove();
+
+    };
+
+
+    scrap.appendChild(img);
+
+  }
+
+
+  /* -------------------------
+     テキスト
+  ------------------------- */
+
+  else{
+
+    width =
+      random(180,420);
+
+    height =
+      random(100,260);
+
+
+    const text =
+      document.createElement("div");
+
+    text.className =
+      "scrap-text";
+
+    text.textContent =
+      item.content || "";
+
+    scrap.appendChild(text);
+
+  }
+
+
+  scrap.dataset.width =
+    width;
+
+  scrap.dataset.height =
+    height;
+
+
+  scrap.style.width =
+    width + "px";
+
+  scrap.style.height =
+    height + "px";
+
+
+  return scrap;
+
+}
+
+
+/* -------------------------
+   配置を変える
+------------------------- */
+
+function scatter(){
+
+  const stage =
+    document.getElementById("stage");
+
+  const items =
+    [...stage.children];
+
+  const stageWidth =
+    window.innerWidth;
+
+  const stageHeight =
+    window.innerHeight;
+
+
+  items.forEach((item,index)=>{
+
+    const width =
+      parseFloat(
+        item.dataset.width || 200
+      );
+
+    const height =
+      parseFloat(
+        item.dataset.height || 150
+      );
+
+
+    /*
+      少し画面から
+      はみ出してもOK
+    */
+
+    const x =
+      random(
+        -width * .25,
+        stageWidth - width * .75
+      );
+
+    const y =
+      random(
+        -height * .2,
+        stageHeight - height * .65
+      );
+
+
+    /*
+      回転
+    */
+
+    const rotation =
+      random(-12,12);
+
+
+    /*
+      大小にも少し差
+    */
+
+    const scale =
+      random(.72,1.18);
+
+
+    /*
+      重なり順
+    */
+
+    const z =
+      Math.floor(
+        random(1,1000)
+      );
+
+
+    item.style.zIndex =
+      z;
+
+
+    item.style.transform =
+      `
+      translate(${x}px,${y}px)
+      rotate(${rotation}deg)
+      scale(${scale})
+      `;
+
+  });
+
+}
+
+
+/* -------------------------
+   最初の状態
+------------------------- */
+
+async function init(){
+
+  const stage =
+    document.getElementById("stage");
+
+  const posts =
+    await getPosts();
+
+
+  /*
+    画像URLが存在するもの、
+    またはテキストだけを残す
+  */
+
+  const validPosts =
+    posts.filter(item => {
+
+      if(item.type === "text"){
+
+        return !!item.content;
+
+      }
+
+      return !!item.image_url;
+
+    });
+
+
+  if(!validPosts.length){
+
+    stage.innerHTML =
+      '<div class="nothing">nothing yet</div>';
+
+    return;
+
+  }
+
+
+  /*
+    順番をシャッフル
+  */
+
+  const shuffled =
+    [...validPosts].sort(
+      () => Math.random() - .5
+    );
+
+
+  shuffled.forEach(item => {
+
+    const scrap =
+      createPost(item);
+
+    stage.appendChild(scrap);
+
+  });
+
+
+  /*
+    最初は中央付近に
+    まとまっている状態
+  */
+
+  [...stage.children].forEach((item,index)=>{
+
+    const x =
+      window.innerWidth / 2 -
+      parseFloat(item.dataset.width) / 2 +
+      random(-20,20);
+
+    const y =
+      window.innerHeight / 2 -
+      parseFloat(item.dataset.height) / 2 +
+      random(-20,20);
+
+    const rotation =
+      random(-3,3);
+
+    item.style.zIndex =
+      index + 1;
+
+    item.style.transform =
+      `
+      translate(${x}px,${y}px)
+      rotate(${rotation}deg)
+      scale(.9)
+      `;
+
+  });
+
+}
+
+
+/* -------------------------
+   クリック
+------------------------- */
+
+document
+  .getElementById("stage")
+  .addEventListener(
+    "click",
+    scatter
+  );
+
+
+/* -------------------------
+   開始
+------------------------- */
+
+init();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kyori01</title>
+
+<link rel="stylesheet" href="../style.css">
+
+<style>
+  body {
+    margin: 0;
+    background: #e52f35;
+  }
+
+  .experiment-detail {
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: #e52f35;
+    padding: 30px;
+    color: #000;
+  }
+
+  .detail-header {
+    margin-bottom: 50px;
+  }
+
+  .detail-title {
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.2;
+    margin: 0 0 18px 0;
+  }
+
+  .detail-description {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* =====================
+     images
+     ===================== */
+
+  .detail-images {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .detail-images img {
+    display: block;
+
+    width: calc((100% - 54px) / 4);
+    height: auto;
+
+    margin-right: 18px;
+  }
+
+  .detail-images img:last-child {
+    margin-right: 0;
+  }
+
+
+  .back {
+    display: inline-block;
+    color: #fff;
+    margin-top: 40px;
+    font-size: 12px;
+    text-decoration: none;
+  }
+
+  .back:hover {
+    text-decoration: underline;
+  }
+
+
+  @media (max-width: 700px) {
+
+    .experiment-detail {
+      padding: 16px;
+    }
+
+    .detail-header {
+      margin-bottom: 30px;
+    }
+
+    .detail-title {
+      font-size: 16px;
+    }
+
+    .detail-description {
+      font-size: 10px;
+    }
+
+    .detail-images img {
+      width: calc((100% - 24px) / 4);
+      margin-right: 8px;
+    }
+
+  }
+</style>
+</head>
+
+
+<body>
+
+<main class="experiment-detail">
+
+
+  <header class="detail-header">
+
+    <h1 class="detail-title">
+      Kyori01
+    </h1>
+
+    <p class="detail-description">
+      距離が変わることで、存在の意味が変わって見える。<br>
+      その構造を、視覚的に整理した。
+    </p>
+
+  </header>
+
+
+  <div class="detail-images">
+
+    <img
+      src="images/kyori-01.jpg"
+      alt="Kyori01 01"
+    >
+
+    <img
+      src="images/kyori-02.jpg"
+      alt="Kyori01 02"
+    >
+
+    <img
+      src="images/kyori-03.jpg"
+      alt="Kyori01 03"
+    >
+
+    <img
+      src="images/kyori-04.jpg"
+      alt="Kyori01 04"
+    >
+
+  </div>
+
+
+  <a class="back" href="index.html">← 実験</a>
+
+
+</main>
+
+</body>
+</html>

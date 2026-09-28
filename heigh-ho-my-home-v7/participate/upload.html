@@ -1,0 +1,411 @@
+<!doctype html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>upload / (最)(近)</title>
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic-to@1.5.2/dist/iife/heic-to.js"></script>
+<script src="config.js"></script>
+</head>
+
+<body>
+<main class="upload-page">
+
+<a href="index.html">← (最)(近)</a>
+
+<h1>あなたの最近を<br>アップロードしてください。</h1>
+
+<div class="upload-switch">
+<button id="imageBtn" class="active">photo</button>
+<button id="textBtn">text</button>
+</div>
+
+<form id="form">
+
+<div id="imageField">
+<input id="image" type="file" accept="image/*">
+<p>写真は自動で軽くしてからアップロードします。</p>
+</div>
+
+<div id="textField" hidden>
+<textarea id="content" placeholder="最近、どうですか？"></textarea>
+</div>
+
+<button type="submit">upload →</button>
+
+<p id="status"></p>
+
+</form>
+
+<p class="small">
+このページから送られたものは、このサイトの archive に追加され、トップではランダムに表示されます。
+</p>
+
+</main>
+
+<style>
+.upload-page{
+  min-height:100vh;
+  padding:45px 7vw;
+  box-sizing:border-box;
+  background:#cad4a7
+}
+
+.upload-page>a{
+  color:#000;
+  font-size:12px
+}
+
+.upload-page h1{
+  font:normal clamp(32px,6vw,78px)/1.1 "Yu Gothic","YuGothic",sans-serif;
+  margin:70px 0 50px
+}
+
+.upload-switch{
+  display:flex;
+  gap:6px
+}
+
+.upload-switch button{
+  background:none;
+  border:1px solid #000;
+  padding:7px 12px
+}
+
+.upload-switch .active{
+  background:#000;
+  color:#fff
+}
+
+.upload-page form{
+  max-width:650px;
+  margin-top:22px
+}
+
+.upload-page input,
+.upload-page textarea{
+  font:16px "Gill Sans","Gill Sans MT",sans-serif
+}
+
+.upload-page textarea{
+  width:100%;
+  height:180px;
+  padding:10px;
+  box-sizing:border-box;
+  border:1px solid #000;
+  background:#fff
+}
+
+.upload-page form>button{
+  margin-top:12px;
+  border:1px solid #000;
+  background:#000;
+  color:#fff;
+  padding:9px 15px
+}
+
+.small{
+  font-size:11px;
+  max-width:550px;
+  margin-top:50px;
+  line-height:1.5
+}
+</style>
+
+<script>
+
+const supabaseReady =
+  window.SUPABASE_URL &&
+  window.SUPABASE_ANON_KEY;
+
+const sb = supabaseReady
+  ? supabase.createClient(
+      window.SUPABASE_URL,
+      window.SUPABASE_ANON_KEY
+    )
+  : null;
+
+const imageBtn = document.getElementById("imageBtn");
+const textBtn = document.getElementById("textBtn");
+const imageField = document.getElementById("imageField");
+const textField = document.getElementById("textField");
+const form = document.getElementById("form");
+const status = document.getElementById("status");
+
+let type = "image";
+
+function setType(t){
+  type = t;
+
+  imageBtn.classList.toggle("active", t === "image");
+  textBtn.classList.toggle("active", t === "text");
+
+  imageField.hidden = t !== "image";
+  textField.hidden = t !== "text";
+}
+
+imageBtn.onclick = () => setType("image");
+textBtn.onclick = () => setType("text");
+
+
+/* --------------------------------
+   HEIC / HEIF → JPEG
+-------------------------------- */
+
+async function convertHeicIfNeeded(file){
+
+  const name = file.name.toLowerCase();
+
+  const isHeic =
+    name.endsWith(".heic") ||
+    name.endsWith(".heif") ||
+    file.type === "image/heic" ||
+    file.type === "image/heif";
+
+  if(!isHeic){
+    return file;
+  }
+
+  status.textContent = "写真を準備しています…";
+
+  try{
+
+    const jpegBlob = await HeicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.9
+    });
+
+    return new File(
+      [jpegBlob],
+      file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+      {
+        type:"image/jpeg",
+        lastModified:Date.now()
+      }
+    );
+
+  }catch(error){
+
+    console.error("HEIC conversion error:", error);
+
+    throw new Error(
+      "HEIC写真をJPEGに変換できませんでした。"
+    );
+  }
+}
+
+
+/* --------------------------------
+   resize
+-------------------------------- */
+
+function resizeImage(file,max=1600){
+
+  return new Promise((resolve,reject)=>{
+
+    const r = new FileReader();
+
+    r.onload = () => {
+
+      const im = new Image();
+
+      im.onload = () => {
+
+        let w = im.width;
+        let h = im.height;
+
+        if(Math.max(w,h) > max){
+
+          const scale =
+            max / Math.max(w,h);
+
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+        }
+
+        const c = document.createElement("canvas");
+
+        c.width = w;
+        c.height = h;
+
+        const ctx = c.getContext("2d");
+
+        ctx.drawImage(
+          im,
+          0,
+          0,
+          w,
+          h
+        );
+
+        c.toBlob(
+          b =>
+            b
+              ? resolve(b)
+              : reject(
+                  new Error(
+                    "画像の変換に失敗しました。"
+                  )
+                ),
+          "image/jpeg",
+          .82
+        );
+
+      };
+
+      im.onerror = () =>
+        reject(
+          new Error(
+            "画像を読み込めませんでした。"
+          )
+        );
+
+      im.src = r.result;
+    };
+
+    r.onerror = () =>
+      reject(
+        new Error(
+          "写真を読み込めませんでした。"
+        )
+      );
+
+    r.readAsDataURL(file);
+
+  });
+
+}
+
+
+/* --------------------------------
+   upload
+-------------------------------- */
+
+form.addEventListener("submit",async e=>{
+
+  e.preventDefault();
+
+  if(!sb){
+
+    status.textContent =
+      "まず config.js に Supabase のURLとanon keyを入れてください。";
+
+    return;
+  }
+
+  status.textContent = "uploading...";
+
+  try{
+
+    let image_url = null;
+
+    if(type === "image"){
+
+      const file =
+        document.getElementById("image").files[0];
+
+      if(!file){
+
+        throw new Error(
+          "写真を選んでください。"
+        );
+      }
+
+      /* HEICならここでJPEGに変換 */
+
+      const convertedFile =
+        await convertHeicIfNeeded(file);
+
+      status.textContent =
+        "写真を軽くしています…";
+
+      /* そのあと今まで通り1600pxに縮小 */
+
+      const blob =
+        await resizeImage(convertedFile);
+
+      const path =
+        crypto.randomUUID() + ".jpg";
+
+      const up =
+        await sb
+          .storage
+          .from("recent")
+          .upload(
+            path,
+            blob,
+            {
+              contentType:"image/jpeg"
+            }
+          );
+
+      if(up.error){
+        throw up.error;
+      }
+
+      image_url =
+        sb
+          .storage
+          .from("recent")
+          .getPublicUrl(path)
+          .data
+          .publicUrl;
+    }
+
+
+    const content =
+      type === "text"
+        ? document
+            .getElementById("content")
+            .value
+            .trim()
+        : "";
+
+    if(type === "text" && !content){
+
+      throw new Error(
+        "文章を入力してください。"
+      );
+    }
+
+
+    const ins =
+      await sb
+        .from("recent_posts")
+        .insert({
+          type,
+          content,
+          image_url,
+          published:true
+        });
+
+    if(ins.error){
+      throw ins.error;
+    }
+
+
+    form.reset();
+
+    status.textContent =
+      "ありがとう。archive に追加しました。";
+
+  }catch(err){
+
+    console.error(err);
+
+    status.textContent =
+      "うまく送れませんでした。" +
+      (err.message || "");
+
+  }
+
+});
+
+</script>
+
+</body>
+</html>

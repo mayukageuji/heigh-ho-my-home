@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>(最)(近)</title><link rel="stylesheet" href="../style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>window.DEMO_POSTS = [
+ {id:"demo1",type:"image",image_url:"../blog/images/0715-01.jpg",content:"",created_at:"2026-08-01"},
+ {id:"demo2",type:"text",image_url:"",content:"今日は知らない道を歩いた。",created_at:"2026-08-02"},
+ {id:"demo3",type:"image",image_url:"../blog/images/0731-01.jpg",content:"",created_at:"2026-08-03"},
+ {id:"demo4",type:"text",image_url:"",content:"久しぶりに料理をした。",created_at:"2026-08-04"}
+];const hasSupabase = window.SUPABASE_URL && window.SUPABASE_ANON_KEY;
+let sb = null;
+if (hasSupabase && window.supabase) {
+  sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+}
+async function getPosts(){
+  if(!sb) return window.DEMO_POSTS || [];
+  const {data,error}=await sb.from("recent_posts").select("*").eq("published",true).order("created_at",{ascending:false});
+  if(error){ console.error(error); return window.DEMO_POSTS || []; }
+  return data || [];
+}
+</script>
+<style>
+body{margin:0}.recent-page{min-height:100vh;background:#cad4a7;position:relative;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.recent-stage{width:min(680px,90vw);min-height:min(72vh,700px);display:flex;align-items:center;justify-content:center}
+.random-item{max-width:100%;max-height:72vh;display:flex;align-items:center;justify-content:center}
+.random-item img{display:block;width:auto;max-width:75vw;max-height:68vh;object-fit:contain}
+.random-text{font:clamp(34px,7vw,100px)/1.08 "Gill Sans","Gill Sans MT","Trebuchet MS",sans-serif;text-align:center;max-width:850px}
+.recent-nav{position:fixed;left:12px;bottom:12px;font-size:11px;display:flex;gap:12px}
+.recent-nav a{color:#000}
+.recent-title{position:fixed;top:18px;left:50%;transform:translateX(-50%);font-size:clamp(34px,6vw,80px);font-family:"Yu Gothic","YuGothic",sans-serif}
+</style></head>
+<body><main class="recent-page">
+<div class="recent-title">(最)(近)</div><div class="recent-stage" id="stage"></div>
+<nav class="recent-nav"><a href="upload.html">upload</a><a href="archive.html">archive</a><a href="about.html">about</a></nav>
+</main>
+<script>
+(async()=>{const posts=await getPosts();const stage=document.getElementById("stage");if(!posts.length){stage.innerHTML='<div class="random-text">nothing yet</div>';return}const item=posts[Math.floor(Math.random()*posts.length)];if(item.type==="image"&&item.image_url){stage.innerHTML='<div class="random-item"><img src="'+item.image_url+'" alt=""></div>'}else{stage.innerHTML='<div class="random-text">'+escapeHtml(item.content||"")+'</div>'}})();
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+</script></body></html>
